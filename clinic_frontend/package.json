@@ -1,0 +1,10 @@
+{
+  "name": "clinic-frontend-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix ./clinic_frontend run dev",
+    "build": "npm --prefix ./clinic_frontend run build",
+    "lint": "npm --prefix ./clinic_frontend run lint",
+    "preview": "npm --prefix ./clinic_frontend run preview"
+  }
+}

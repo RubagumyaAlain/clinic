@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kigali Clinic - Offices</title>
+</head>
+<body style="margin: 0; font-family: Arial, sans-serif; background-color: #f2f6f9; color: #333;">
+
+    <!-- Top bar -->
+    <div style="background-color: #1f6f8b; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 26px;">Kigali Clinic</h1>
+        <p style="margin: 5px 0 0 0;">Office Management</p>
+    </div>
+
+    <div style="max-width: 700px; margin: 20px auto; padding: 0 15px;">
+
+        <!-- Message line (shows success or error) -->
+        <p id="message" style="min-height: 20px; font-weight: bold; text-align: center;"></p>
+
+        <!-- Add office form -->
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);">
+            <h2 style="margin-top: 0; font-size: 20px;">Add Office</h2>
+            <input id="name" type="text" placeholder="Office name"
+                style="padding: 8px; width: 40%; border: 1px solid #aaa; border-radius: 4px;">
+            <input id="number" type="number" placeholder="Office number"
+                style="padding: 8px; width: 30%; border: 1px solid #aaa; border-radius: 4px;">
+            <button onclick="saveOffice()"
+                style="padding: 9px 16px; background-color: #2e9e5b; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Save
+            </button>
+        </div>
+
+        <!-- Search form -->
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);">
+            <h2 style="margin-top: 0; font-size: 20px;">Search Office</h2>
+            <input id="searchName" type="text" placeholder="Office name"
+                style="padding: 8px; width: 40%; border: 1px solid #aaa; border-radius: 4px;">
+            <input id="searchNumber" type="number" placeholder="Office number"
+                style="padding: 8px; width: 30%; border: 1px solid #aaa; border-radius: 4px;">
+            <button onclick="searchOffice()"
+                style="padding: 9px 16px; background-color: #1f6f8b; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Search
+            </button>
+            <p id="searchResult" style="margin-bottom: 0;"></p>
+        </div>
+
+        <!-- Office list -->
+        <div style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);">
+            <h2 style="margin-top: 0; font-size: 20px;">All Offices</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #e3eef3; text-align: left;">
+                        <th style="padding: 10px;">Name</th>
+                        <th style="padding: 10px;">Number</th>
+                        <th style="padding: 10px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="officeList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        var baseUrl = "/api/office";
+
+        function showMessage(text, isError) {
+            var message = document.getElementById("message");
+            message.innerText = text;
+            if (isError) {
+                message.style.color = "#c0392b";
+            } else {
+                message.style.color = "#2e9e5b";
+            }
+        }
+
+        // Load all offices and fill the table
+        function loadOffices() {
+            fetch(baseUrl)
+                .then(function (response) { return response.json(); })
+                .then(function (offices) {
+                    var list = document.getElementById("officeList");
+                    list.innerHTML = "";
+
+                    if (offices.length === 0) {
+                        list.innerHTML = "<tr><td colspan='3' style='padding: 10px; color: #777;'>No offices yet.</td></tr>";
+                        return;
+                    }
+
+                    for (var i = 0; i < offices.length; i++) {
+                        var office = offices[i];
+                        list.innerHTML +=
+                            "<tr style='border-bottom: 1px solid #ddd;'>" +
+                            "<td style='padding: 10px;'>" + office.name + "</td>" +
+                            "<td style='padding: 10px;'>" + office.officeNumber + "</td>" +
+                            "<td style='padding: 10px;'>" +
+                            "<button onclick=\"deleteOffice('" + office.id + "')\" " +
+                            "style='padding: 6px 12px; background-color: #c0392b; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete</button>" +
+                            "</td></tr>";
+                    }
+                })
+                .catch(function () {
+                    showMessage("Could not load offices. Is the server running?", true);
+                });
+        }
+
+        // Save a new office
+        function saveOffice() {
+            var name = document.getElementById("name").value;
+            var number = document.getElementById("number").value;
+
+            if (name === "" || number === "") {
+                showMessage("Please enter the office name and number.", true);
+                return;
+            }
+
+            fetch(baseUrl + "/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name, officeNumber: parseInt(number) })
+            })
+                .then(function (response) {
+                    if (response.ok) {
+                        showMessage("Office saved.", false);
+                        document.getElementById("name").value = "";
+                        document.getElementById("number").value = "";
+                        loadOffices();
+                    } else {
+                        showMessage("Could not save. The office number may already exist.", true);
+                    }
+                });
+        }
+
+        // Search by name or number
+        function searchOffice() {
+            var name = document.getElementById("searchName").value;
+            var number = document.getElementById("searchNumber").value;
+            var result = document.getElementById("searchResult");
+
+            if (name === "" || number === "" || number === "0") {
+                result.innerText = "Enter a name and a number (not 0).";
+                return;
+            }
+
+            fetch(baseUrl + "/SearchOffice/" + encodeURIComponent(name) + "/" + number)
+                .then(function (response) { return response.text(); })
+                .then(function (text) {
+                    if (text === "") {
+                        result.innerText = "No office found.";
+                        return;
+                    }
+                    var office = JSON.parse(text);
+                    result.innerText = "Found: " + office.name + " (Office " + office.officeNumber + ")";
+                })
+                .catch(function () {
+                    result.innerText = "Search failed.";
+                });
+        }
+
+        // Delete an office
+        function deleteOffice(id) {
+            if (!confirm("Delete this office?")) {
+                return;
+            }
+
+            fetch(baseUrl + "/" + id, { method: "DELETE" })
+                .then(function (response) {
+                    if (response.ok) {
+                        showMessage("Office deleted.", false);
+                        loadOffices();
+                    } else {
+                        showMessage("Could not delete the office.", true);
+                    }
+                });
+        }
+
+        loadOffices();
+    </script>
+
+</body>
+</html>
